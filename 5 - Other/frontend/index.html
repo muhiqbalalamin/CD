@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebGIS Zonasi Sekolah — Jawa Barat</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== LOADING ===== -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Memuat data…</p>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ===== NAVBAR ===== -->
+  <header class="navbar">
+    <div class="navbar-brand">
+      <span class="logo-icon">🏫</span>
+      <span class="logo-text">ZonasiJabar</span>
+    </div>
+
+    <nav class="navbar-center">
+      <a href="#" class="nav-link" data-page="home">Home</a>
+      <a href="#" class="nav-link" data-page="map">Map</a>
+      <a href="#" class="nav-link" data-page="zonasi">Zonasi</a>
+    </nav>
+
+    <div class="navbar-right">
+      <button class="user-btn" data-page="profile" title="Profil">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <circle cx="13" cy="9" r="5" stroke="white" stroke-width="2"/>
+          <path d="M3 23c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== SEARCH BAR (bawah navbar, muncul di map & zonasi) ===== -->
+  <div class="search-bar-row" id="search-bar-row">
+    <span class="hamburger">☰</span>
+    <input type="search" id="global-search" class="global-search" placeholder="Hinted search text" />
+    <button class="search-icon-btn">🔍</button>
+  </div>
+
+  <!-- ===== PAGES ===== -->
+  <main class="page-container">
+
+    <!-- ── HOME ──────────────────────────────────── -->
+    <section id="page-home" class="page active">
+      <div class="hero-banner">
+        <h1>Pemetaan Sekolah dan Pengecekan Zonasi<br/>Daerah Jawa Barat</h1>
+        <p class="hero-sub">Buka peta atau lakukan pengecekan</p>
+        <div class="hero-actions">
+          <button class="btn btn-blue" data-page="map">Lihat Peta</button>
+          <button class="btn btn-green" data-page="zonasi">Cek Zonasi</button>
+        </div>
+      </div>
+
+      <div class="home-grid">
+        <!-- Berita -->
+        <div class="home-card">
+          <h2 class="card-section-title">Berita</h2>
+          <div class="carousel-wrap">
+            <button class="carousel-btn" id="berita-prev">&#171;</button>
+            <div class="carousel-slide">
+              <div class="berita-placeholder">
+                <div class="berita-img"></div>
+              </div>
+            </div>
+            <button class="carousel-btn" id="berita-next">&#187;</button>
+          </div>
+        </div>
+
+        <!-- Daftar Sekolah -->
+        <div class="home-card home-card--info">
+          <h2 class="card-section-title">Informasi</h2>
+          <div class="table-box">
+            <div class="table-top-row">
+              <span class="table-box-title">Daftar Sekolah</span>
+              <select class="year-select">
+                <option>2025 ▾</option>
+                <option>2024 ▾</option>
+              </select>
+            </div>
+            <table class="school-table">
+              <thead>
+                <tr>
+                  <th>NO</th>
+                  <th>Nama Sekolah</th>
+                  <th>Akreditasi</th>
+                  <th>Jumlah Pendaftar</th>
+                  <th>Alamat</th>
+                </tr>
+              </thead>
+              <tbody id="home-tbody">
+                <tr><td colspan="5" class="td-empty">Memuat…</td></tr>
+              </tbody>
+            </table>
+            <div class="pagination-row">
+              <button class="page-btn" id="home-prev">← Previous</button>
+              <span class="page-info" id="home-page-info">Page 1 of 1</span>
+              <button class="page-btn" id="home-next">Next →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── MAP ───────────────────────────────────── -->
+    <section id="page-map" class="page">
+      <div class="map-with-filter">
+        <!-- Filter box overlay -->
+        <div class="filter-box leaflet-control" id="map-filter-box">
+          <div class="filter-row">
+            <label class="filter-label">Kategori</label>
+            <select class="filter-select" id="map-kat">
+              <option value="">Semua Kategori ▾</option>
+              <option value="SD">SD</option>
+              <option value="SMP">SMP</option>
+              <option value="SMA">SMA</option>
+              <option value="SMK">SMK</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label class="filter-label">Biaya</label>
+            <select class="filter-select" id="map-biaya">
+              <option value="">Semua Rentan Biaya ▾</option>
+              <option value="gratis">Gratis</option>
+              <option value="murah">Murah</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label>Akreditasi</label>
+            <select id="filter-akreditasi" class="filter-input">
+              <option value="">Semua</option>
+              <option value="A">Akreditasi A</option>
+              <option value="B">Akreditasi B</option>
+              <option value="C">Akreditasi C</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label>Maks. Biaya Masuk</label>
+            <input type="number" id="filter-biaya" placeholder="Contoh: 5000000" class="filter-input">
+          </div>
+          <div class="filter-btns">
+            <button class="btn btn-outline-sm" id="map-clear">Clear</button>
+            <button class="btn btn-blue-sm" id="map-apply">Terapkan</button>
+          </div>
+        </div>
+        <!-- Leaflet -->
+        <div id="map-view" class="leaflet-map"></div>
+      </div>
+
+      <!-- List bawah peta -->
+      <div class="below-map-panel">
+        <h3 class="below-title">List Sekolah</h3>
+        <ul class="flat-list" id="map-list"></ul>
+        <div class="pagination-row">
+          <button class="page-btn" id="map-prev">← Previous</button>
+          <span class="page-info" id="map-page-info">Page 1 of 1</span>
+          <button class="page-btn" id="map-next">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ZONASI ─────────────────────────────────── -->
+    <section id="page-zonasi" class="page">
+
+      <!-- ════════════════════════════════
+           STEP 1 — Form Input Lokasi
+           Ditampilkan saat belum ada lokasi
+      ════════════════════════════════ -->
+      <div id="zonasi-input-step" class="zonasi-input-step">
+        <div class="zonasi-form-card">
+
+          <!-- Header -->
+          <div class="zonasi-form-header">
+            <div class="zonasi-form-icon">📍</div>
+            <h2>Cek Zonasi Sekolah</h2>
+            <p>Masukkan lokasi domisili kamu untuk melihat sekolah terdekat dalam radius tertentu</p>
+          </div>
+
+          <!-- Tab pilihan metode input -->
+          <div class="loc-tabs">
+            <button class="loc-tab active" data-tab="gps">
+              📡 GPS Otomatis
+            </button>
+            <button class="loc-tab" data-tab="koordinat">
+              🌐 Koordinat
+            </button>
+            <button class="loc-tab" data-tab="kota">
+              🏙️ Kota / Kabupaten
+            </button>
+          </div>
+
+          <!-- Tab: GPS -->
+          <div class="loc-tab-panel active" id="tab-gps">
+            <div class="gps-info-box">
+              <span class="gps-icon-big">📡</span>
+              <p>Izinkan browser mengakses lokasi GPS perangkat kamu secara otomatis.</p>
+              <p class="gps-note">Pastikan izin lokasi browser sudah diaktifkan.</p>
+            </div>
+            <button class="btn btn-blue btn-full" id="btn-geoloc">
+              📡 Deteksi Lokasi Saya
+            </button>
+            <div class="gps-status" id="gps-status"></div>
+          </div>
+
+          <!-- Tab: Koordinat Manual -->
+          <div class="loc-tab-panel" id="tab-koordinat">
+            <div class="coord-grid">
+              <div class="coord-field">
+                <label class="input-label">Latitude</label>
+                <input type="number" id="input-lat" class="loc-input"
+                  placeholder="Contoh: -6.9147" step="0.0001" min="-90" max="90"/>
+                <span class="input-hint">Angka negatif untuk selatan</span>
+              </div>
+              <div class="coord-field">
+                <label class="input-label">Longitude</label>
+                <input type="number" id="input-lng" class="loc-input"
+                  placeholder="Contoh: 107.6098" step="0.0001" min="-180" max="180"/>
+                <span class="input-hint">Angka positif untuk timur</span>
+              </div>
+            </div>
+            <p class="coord-tip">
+              💡 Cara mendapatkan koordinat: buka Google Maps → klik lokasi → koordinat muncul di bawah layar
+            </p>
+            <button class="btn btn-blue btn-full" id="btn-submit-koordinat">
+              🔍 Cek Zonasi
+            </button>
+          </div>
+
+          <!-- Tab: Nama Kota / Kabupaten -->
+          <div class="loc-tab-panel" id="tab-kota">
+            <label class="input-label">Pilih Kota / Kabupaten</label>
+            <div class="kota-search-wrap">
+              <input type="search" id="input-kota-search" class="loc-input"
+                placeholder="Ketik nama kota/kabupaten…" autocomplete="off"/>
+              <div class="kota-dropdown" id="kota-dropdown"></div>
+            </div>
+            <div class="kota-selected-info" id="kota-selected-info"></div>
+            <button class="btn btn-blue btn-full" id="btn-submit-kota" disabled>
+              🔍 Cek Zonasi
+            </button>
+          </div>
+
+          <!-- Radius (selalu tampil) -->
+          <div class="radius-section">
+            <label class="input-label">Radius Zonasi</label>
+            <div class="radius-input-row">
+              <input type="number" id="radius-num" class="radius-num-input"
+                value="5" min="0.1" max="50" step="0.1"/>
+              <span class="radius-unit">km</span>
+              <input type="range" id="radius-range" class="radius-range-input"
+                value="5" min="0.1" max="20" step="0.1"/>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════
+           STEP 2 — Hasil Peta & List
+           Ditampilkan setelah lokasi diinput
+      ════════════════════════════════ -->
+      <div id="zonasi-result-step" class="zonasi-result-step hidden">
+
+        <!-- Info bar lokasi aktif + tombol ganti lokasi -->
+        <div class="zonasi-info-bar">
+          <div class="zonasi-info-left">
+            <span class="zonasi-info-icon">📍</span>
+            <div>
+              <span class="zonasi-info-label">Lokasi aktif:</span>
+              <span class="zonasi-info-val" id="zonasi-active-loc">—</span>
+            </div>
+          </div>
+          <div class="zonasi-info-right">
+            <span class="zonasi-radius-badge" id="zonasi-radius-badge">Radius: 5 km</span>
+            <button class="btn-change-loc" id="btn-change-loc">↩ Ganti Lokasi</button>
+          </div>
+        </div>
+
+        <!-- Filter overlay di peta -->
+        <div class="map-with-filter" style="position:relative; flex-shrink:0; height:50vh; min-height:280px;">
+          <div class="filter-box leaflet-control" id="zonasi-filter-box">
+            <div class="filter-row">
+              <label class="filter-label">Kategori</label>
+              <select class="filter-select" id="zon-kat">
+                <option value="">Semua Kategori ▾</option>
+                <option value="SD">SD</option>
+                <option value="SMP">SMP</option>
+                <option value="SMA">SMA</option>
+                <option value="SMK">SMK</option>
+              </select>
+            </div>
+            <div class="filter-btns">
+              <button class="btn btn-outline-sm" id="zon-clear">Clear</button>
+              <button class="btn btn-blue-sm" id="zon-apply">Terapkan</button>
+            </div>
+          </div>
+          <div id="zonasi-view" class="leaflet-map"></div>
+        </div>
+
+        <!-- List sekolah bawah peta -->
+        <div class="below-map-panel">
+          <div class="below-title-row">
+            <h3 class="below-title">List Sekolah</h3>
+            <div class="legend-mini">
+              <span class="legend-dot-mini green"></span><span>Dalam zona</span>
+              <span class="legend-dot-mini yellow"></span><span>Dekat</span>
+              <span class="legend-dot-mini red"></span><span>Luar zona</span>
+            </div>
+          </div>
+          <ul class="flat-list" id="zon-list"></ul>
+          <div class="pagination-row">
+            <button class="page-btn" id="zon-prev">← Previous</button>
+            <span class="page-info" id="zon-page-info">Page 1 of 1</span>
+            <button class="page-btn" id="zon-next">Next →</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── LOGIN ─────────────────────────────────── -->
+    <section id="page-login" class="page auth-page">
+      <div class="auth-card">
+        <div class="auth-header">LOGIN</div>
+        <form id="login-form" class="auth-body"> <!-- 18-04-2026 perbaikan input -->
+          <label class="auth-label">Email</label>
+          <input type="email" id="login-email" class="auth-input" required />
+          <label class="auth-label">Password</label>
+          <div class="pass-wrap">
+            <input type="password" id="login-pass" class="auth-input" required />
+            <button type="button" class="eye-btn" data-target="login-pass">👁</button>
+          </div>
+          <button type="submit" class="btn btn-blue auth-submit">LOGIN</button>
+          <p class="auth-footer">Don't have an account? <a href="#" data-page="register" class="auth-link">Register here</a></p>
+          <p class="auth-footer"><a href="#" class="auth-link">Forgot Password?</a></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── REGISTER ───────────────────────────────── -->
+    <section id="page-register" class="page auth-page">
+      <div class="auth-card">
+        <div class="auth-header">REGISTER</div>
+        <form id="register-form" class="auth-body"> <!-- 18-04-2026 perbaikan input -->
+          <label class="auth-label">Username</label>
+          <input type="text" id="reg-user" class="auth-input" required />
+          <label class="auth-label">Email</label>
+          <input type="email" id="reg-email" class="auth-input" required />
+          <label class="auth-label">Password</label>
+          <div class="pass-wrap">
+            <input type="password" id="reg-pass" class="auth-input" required />
+            <button type="button" class="eye-btn" data-target="reg-pass">👁</button>
+          </div>
+          <div class="form-group"> <!--18-04-2026-->
+            <label class="auth-label">Daftar Sebagai:</label>
+            <select id="reg-role" class="auth-input" required>
+              <option value="user">Pengguna Umum (Masyarakat)</option>
+              <option value="sekolah">Instansi Sekolah (Operator)</option>
+              <option value="admin">Pegawai Dinas (Admin)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-blue auth-submit">Register</button>
+          <p class="auth-footer">Already have an account? <a href="#" data-page="login" class="auth-link">Login here</a></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── PROFILE ───────────────────────────────── -->
+    <section id="page-profile" class="page profile-page">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar">
+          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+            <circle cx="36" cy="26" r="16" stroke="#bbb" stroke-width="3"/>
+            <path d="M6 68c0-16.569 13.431-30 30-30s30 13.431 30 30" stroke="#bbb" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <hr class="profile-divider" />
+      <div class="profile-field-list">
+        <div class="profile-field">
+          <span class="profile-label">Username</span>
+          <span class="profile-val">User 1</span>
+        </div>
+        <hr class="profile-divider" />
+        <div class="profile-field">
+          <span class="profile-label">Email</span>
+          <span class="profile-val"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="483d3b2d3a3b293c3d082f25292124662b2725">[email&#160;protected]</a></span>
+        </div>
+        <hr class="profile-divider" />
+        <div class="profile-field">
+          <span class="profile-label">Password</span>
+          <div class="profile-pass-row">
+            <span class="profile-val" id="prof-pass">••••••••••</span>
+            <button class="lihat-btn" id="btn-lihat-pass">lihat password 👁</button>
+          </div>
+        </div>
+        <hr class="profile-divider" />
+        <div class="profile-logout-row">
+          <a href="#" class="keluar-link" data-page="login">Keluar</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== BOTTOM NAV (Mobile) ===== -->
+  <nav class="bottom-nav">
+    <button class="bnav-btn" data-page="zonasi" title="Zonasi">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="10" r="3.5" stroke="currentColor" stroke-width="2"/><circle cx="11" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+    </button>
+    <button class="bnav-btn" data-page="home" title="Home">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 9.5L11 3l8 6.5V19a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" stroke="currentColor" stroke-width="2"/><path d="M8 20v-7h6v7" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+    <button class="bnav-btn" data-page="map" title="Map">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M1 5l7-3 6 3 7-3v14l-7 3-6-3-7 3V5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    </button>
+  </nav>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="assets/js/main.js"></script>
+</body>
+</html>
