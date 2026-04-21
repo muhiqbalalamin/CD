@@ -1,0 +1,121 @@
+note
+value user buat sekolah dari it_sekolah jadi sekolah aja
+
+RUN:
+python -m http.server 3000
+uvicorn app.main:app --reload
+
+Backend Tambahan
+Main.py
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Mengizinkan semua akses (sangat penting untuk testing lokal)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+scheams.py
+class SchoolMapResponse(BaseModel):
+    alamat: str | None = None
+    kuota: int | None = None
+    daya_tampung: int | None = None
+    akreditasi: str | None = None
+
+class RegisterSchema(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str = "user"
+
+main.js 464
+  
+  // ── LOGIN submit (frontend only — langsung masuk Home) ──
+  document.querySelector('.page#page-login .auth-submit')?.addEventListener('click', () => {
+    const user = document.getElementById('login-user')?.value.trim();
+    const pass = document.getElementById('login-pass')?.value.trim();
+    if (!user || !pass) {
+      showToast('Isi email dan password terlebih dahulu', 'error');
+      return;
+    }
+    showToast('Login berhasil! Selamat datang 👋', 'success');
+    navigateTo('home');
+  });
+
+  // ── REGISTER submit (frontend only) ──
+  document.querySelector('.page#page-register .auth-submit')?.addEventListener('click', () => {
+    showToast('Registrasi berhasil! Silakan login.', 'success');
+    navigateTo('login');
+  });
+
+  // --- FORM REGISTRASI ---
+  const regForm = document.getElementById('register-form');
+  if (regForm) {
+    regForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); // Mencegah halaman me-reload
+      console.log("Tombol daftar ditekan!"); // Cek di Inspect -> Console
+
+      const username = document.getElementById('reg-user').value;
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-pass').value;
+      const role = document.getElementById('reg-role').value;
+
+      try {
+        // Tampilkan loading jika ada
+        showLoading();
+        
+        // Memanggil API yang ada di api.js
+        await registerUser(username, email, password, role);
+        
+        hideLoading();
+        showToast('Registrasi berhasil! Silakan login.', 'success');
+        
+        // Kosongkan form
+        regForm.reset();
+        
+        // Opsional: Otomatis pindah ke halaman/tab login setelah daftar
+        document.querySelector('[data-page="login"]')?.click(); 
+        
+      } catch (err) {
+        hideLoading();
+        console.error("❌ Error Registrasi:", err);
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // --- FORM LOGIN ---
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      console.log("🚀 Tombol login ditekan!");
+
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-pass').value;
+
+      try {
+        showLoading();
+        const user = await loginUser(email, password);
+        hideLoading();
+        
+        showToast(`Selamat datang, ${user.username}!`, 'success');
+        
+        // Update tampilan menu navbar
+        updateUIForLoggedInUser();
+
+        // Bersihkan form
+        loginForm.reset();
+
+        // Arahkan halaman sesuai Role (Simulasi sementara, arahkan ke Home)
+        document.querySelector('[data-page="home"]')?.click();
+
+      } catch (err) {
+        hideLoading();
+        console.error("❌ Error Login:", err);
+        showToast(err.message, 'error');
+      }
+    });
+  }
