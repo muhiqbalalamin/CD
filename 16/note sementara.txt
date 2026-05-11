@@ -1,0 +1,76 @@
+Kalau ga bisa run coba sesuain ini
+-- =============================================================
+-- MIGRATION: 002_migration_sync.sql
+-- Menyesuaikan schema DB dengan models.py / schemas.py / crud.py
+-- Aman dijalankan berulang (idempotent via IF NOT EXISTS / IF EXISTS)
+-- =============================================================
+ 
+ 
+-- -------------------------------------------------------------
+-- 1. users — tambahkan FOREIGN KEY ke sekolah
+--    (kolom school_id sudah ada, tapi belum ada constraint FK)
+-- -------------------------------------------------------------
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'fk_users_school_id'
+          AND table_name = 'users'
+    ) THEN
+        ALTER TABLE users
+            ADD CONSTRAINT fk_users_school_id
+            FOREIGN KEY (school_id)
+            REFERENCES sekolah(sekolah_id)
+            ON DELETE SET NULL;
+    END IF;
+END$$;
+ 
+ 
+-- -------------------------------------------------------------
+-- 2. user_profiles — selaraskan kolom dengan models.py
+--
+--    models.py punya : kabupaten, kecamatan, kelurahan, data_anak
+--    SQL lama punya  : kota, nama_anak, jenjang_anak, sekolah_tujuan
+--
+--    Strategi:
+--      - Tambah kolom baru (kabupaten, kecamatan, kelurahan, data_anak)
+--      - Kolom lama (kota, nama_anak, jenjang_anak, sekolah_tujuan)
+--        di-DROP karena tidak direferensikan di models.py maupun crud.py
+--        (crud.py mengakses profile.data_anak, profile.kecamatan, profile.kelurahan)
+-- -------------------------------------------------------------
+ 
+-- Tambah kolom baru
+ALTER TABLE user_profiles
+    ADD COLUMN IF NOT EXISTS kabupaten  TEXT,
+    ADD COLUMN IF NOT EXISTS kecamatan  TEXT,
+    ADD COLUMN IF NOT EXISTS kelurahan  TEXT,
+    ADD COLUMN IF NOT EXISTS data_anak  TEXT;   -- JSON string, lihat crud.py baris 550
+ 
+-- Hapus kolom lama yang sudah tidak dipakai
+ALTER TABLE user_profiles
+    DROP COLUMN IF EXISTS kota,
+    DROP COLUMN IF EXISTS nama_anak,
+    DROP COLUMN IF EXISTS jenjang_anak,
+    DROP COLUMN IF EXISTS sekolah_tujuan;
+ 
+ 
+-- -------------------------------------------------------------
+-- 3. sekolah — unique partial index untuk npsn
+--    (models.py: "unique enforced via DB partial index")
+-- -------------------------------------------------------------
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sekolah_npsn_unique
+    ON sekolah (npsn)
+    WHERE npsn IS NOT NULL;
+ 
+ 
+-- -------------------------------------------------------------
+-- 4. sekolah — pastikan kabupaten ada (sudah ada di SQL lama,
+--    tapi jaga-jaga kalau DB lama belum di-migrate)
+-- -------------------------------------------------------------
+ALTER TABLE sekolah
+    ADD COLUMN IF NOT EXISTS kabupaten TEXT;
+ 
+ 
+-- =============================================================
+-- DONE
+-- =============================================================
