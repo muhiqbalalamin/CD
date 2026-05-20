@@ -1,0 +1,7 @@
+RUN:
+python -m http.server 3000
+uvicorn app.main:app --reload
+
+Cari dan Ganti di app.py buat code khusus 
+ini admin ADM-JABAR-2026 
+ini Op OPS-SEKOLAH-2026
